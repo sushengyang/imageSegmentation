@@ -11,26 +11,24 @@ import javax.swing.JComponent;
 public class MainViewComponent extends JComponent {
 
 	private BufferedImage _sourceImg;
+	private BufferedImage _segmentedImg;
 	
 	public MainViewComponent(BufferedImage image) {
 		_sourceImg = image;
+		
+		ImageProcessor ip = new ImageProcessor();
+		_segmentedImg = ip.process(_sourceImg);
 	}
 	
 	@Override
 	public Dimension getPreferredSize() {
-		return new Dimension( _sourceImg.getWidth(), _sourceImg.getHeight() );
+		return new Dimension( _sourceImg.getWidth() * 2 + 2, _sourceImg.getHeight() );
 	}
 
 	@Override
 	public void paint(Graphics g) {
-		g.drawImage(_sourceImg, 0, 0, new ImageObserver() {
-			
-			@Override
-			public boolean imageUpdate(Image img, int infoflags, int x, int y, int width, int height) {
-				ImageProcessor ip = new ImageProcessor();
-				ip.process(_sourceImg);
-				return false;
-			}
-		});
+		g.drawImage(_sourceImg, 0, 0, null);
+		if(_segmentedImg != null)
+			g.drawImage(_segmentedImg, _sourceImg.getWidth()+2, 0, null);
 	}
 }

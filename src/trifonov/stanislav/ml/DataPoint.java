@@ -1,9 +1,9 @@
 package trifonov.stanislav.ml;
 
 public class DataPoint {
-	int _r;
-	int _g;
-	int _b;
+	public int _r;
+	public int _g;
+	public int _b;
 	
 	public DataPoint(int r, int g, int b) {
 		_r = r;

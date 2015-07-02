@@ -1,15 +1,39 @@
 package trifonov.stanislav.ml;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 public class KMeansClustering {
 
+	
+	public static class Cluster {
+		private final DataPoint _center;
+		private final List<DataPoint> _points;
+		
+		public Cluster(DataPoint center) {
+			_center = center;
+			_points = new ArrayList<>();
+		}
+		
+		public DataPoint getCenter() {
+			return _center;
+		}
+		
+		public void addPoint(DataPoint point) {
+	        _points.add(point);
+	    }
+		
+	    public List<DataPoint> getPoints() {
+	        return _points;
+	    }
+	}
+	
+	
 	private final int _k;
 	private List<DataPoint> _dataPoints;
-	private Set<DataPoint> _centroids;
 	
 	public KMeansClustering(int k) {
 		_k = k;
@@ -19,82 +43,120 @@ public class KMeansClustering {
 		_dataPoints = points;
 	}
 	
-	public void cluster() {
-		Set<DataPoint> centroids = new HashSet<DataPoint>(_k);
-		Set<DataPoint> oldCentroids = new HashSet<DataPoint>(_k);
-		List<DataPoint> labels = new ArrayList<DataPoint>(_dataPoints.size());
-		
+	public List<Cluster> cluster() {
 		//initialize random centroids
+		Set<DataPoint> centroids = new HashSet<>(_k);
 		while(centroids.size() < _k) {
 			int index = (int) (Math.random() * (double)_dataPoints.size());
 			centroids.add( _dataPoints.get(index) );
 		}
 
-		for(int i=0; i<_dataPoints.size(); ++i)
-			labels.add(_dataPoints.get(i));
+		
+		List<Cluster> clusters = new ArrayList<>(_k);
+		for(DataPoint centroid : centroids)
+			clusters.add( new Cluster(centroid) );
+
+		int[] pointToClusterAssignments = new int[_dataPoints.size()];
+		assignPointsToCluster(clusters, _dataPoints, pointToClusterAssignments);
 		
 		
-		while( !oldCentroids.equals(centroids) ) {
+		for(int iterations=0; iterations < Integer.MAX_VALUE; ++iterations) {
+			boolean emptyCluster = false;
 			
-			oldCentroids = centroids;
-			
-			//assign each point to a centroid/cluster
-			for(int i=0; i<_dataPoints.size(); ++i) {
-				double minDistance = Double.MAX_VALUE;
-				for(DataPoint centroid : centroids) {
-					double d = distance( _dataPoints.get(i), centroid );
-					if(d < minDistance) {
-						minDistance = d;
-						labels.set(i, centroid);
-					}
+			List<Cluster> newClusters = new ArrayList<>();
+			for(Cluster cluster : clusters) {
+				DataPoint newCentroid;
+				if(cluster.getPoints().isEmpty()) {
+					newCentroid = getPointFromLargestNumberCluster(clusters);
+					emptyCluster = true;
 				}
+				else
+					newCentroid = centroidOf( cluster.getPoints() );
+				
+				newClusters.add( new Cluster(newCentroid) );
 			}
 			
-			//create the new average feature-vectors for new centroids
-			centroids.clear();
-			for(DataPoint centroid : oldCentroids) {
-				List<DataPoint> clusterPoints = new ArrayList<>();
-				for(int i=0; i<labels.size(); ++i) {
-					if( labels.get(i).equals(centroid) ) {
-						clusterPoints.add(_dataPoints.get(i));
-					}
-				}
-
-				double avgR = 0;
-				double avgG = 0;
-				double avgB = 0;
-				for(DataPoint p : clusterPoints) {
-					avgR += p._r;
-					avgG += p._g;
-					avgB += p._b;
-				}
-				avgR /= clusterPoints.size();
-				avgG /= clusterPoints.size();
-				avgB /= clusterPoints.size();
-				
-				centroids.add( new DataPoint((int)avgR, (int)avgG, (int)avgB) );
+			int newAssignments = assignPointsToCluster(newClusters, _dataPoints, pointToClusterAssignments);
+			clusters = newClusters;
+			
+			if(newAssignments == 0 && !emptyCluster) {
+				return clusters;
 			}
 		}
 		
-		_centroids = centroids;
+		return clusters;
 	}
 	
-	public DataPoint clusterAffiliation(DataPoint p) {
-		DataPoint closestCentroid = null;
-		double minDistance = Double.MAX_VALUE;
+	private DataPoint centroidOf(Collection<DataPoint> points) {
+		DataPoint centroid = new DataPoint(0, 0, 0);
+		for(DataPoint p : points) {
+			centroid._r += p._r;
+			centroid._g += p._g;
+			centroid._b += p._b;
+		}
 		
-		for(DataPoint c : _centroids) {
-			double d = distance(p, c);
+		centroid._r /= points.size();
+		centroid._g /= points.size();
+		centroid._b /= points.size();
+		
+		return centroid;
+	}
+	
+	private DataPoint getPointFromLargestNumberCluster(final Collection<Cluster> clusters) {
+        int maxNumber = 0;
+        Cluster selected = null;
+        for (Cluster cluster : clusters) {
+            final int number = cluster.getPoints().size();
+            if (number > maxNumber) {
+                maxNumber = number;
+                selected = cluster;
+            }
+        }
+
+        List<DataPoint> selectedPoints = selected.getPoints();
+        return selectedPoints.remove( (int) (Math.random() * (double)selectedPoints.size()) );
+
+    }
+	
+	private int assignPointsToCluster(List<Cluster> clusters, Collection<DataPoint> dataPoints, int[] assignments) {
+		int newAssignments = 0;
+		int pointIndex=0;
+		
+		for(DataPoint p : dataPoints) {
+			int nearestClusterIndex = getNearestCluster(p, clusters);
+			Cluster cluster = clusters.get(nearestClusterIndex);
+			cluster.addPoint(p);
+			
+			if(assignments[pointIndex] != nearestClusterIndex) {
+				newAssignments++;
+				assignments[pointIndex] = nearestClusterIndex;
+			}
+			++pointIndex;
+		}
+
+		return newAssignments;
+	}
+	
+	private static int getNearestCluster(DataPoint p, List<Cluster> clusters) {
+		double minDistance = Double.MAX_VALUE;
+		int nearestClusterIndex = 0;
+		
+		for(int i=0; i<clusters.size(); ++i) {
+			double d = distance(p, clusters.get(i).getCenter());
 			if(d < minDistance) {
 				minDistance = d;
-				closestCentroid = c;
+				nearestClusterIndex = i;
 			}
 		}
-		
-		return closestCentroid;
+	
+		return nearestClusterIndex;
 	}
 	
-	private double distance(DataPoint p1, DataPoint p2) {
+	public static DataPoint clusterAffiliation(DataPoint p, List<Cluster> clusters) {
+		return clusters.get( getNearestCluster(p, clusters) ).getCenter();
+	}
+	
+	private static double distance(DataPoint p1, DataPoint p2) {
 		int r = p1._r - p2._r;
 		int g = p1._g - p2._g;
 		int b = p1._b - p2._b;
