@@ -4,83 +4,61 @@ import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.math3.ml.clustering.CentroidCluster;
-import org.apache.commons.math3.ml.clustering.Clusterable;
-import org.apache.commons.math3.ml.clustering.KMeansPlusPlusClusterer;
-
 import trifonov.stanislav.ml.DataPoint;
 import trifonov.stanislav.ml.KMeansClustering;
 import trifonov.stanislav.ml.KMeansClustering.Cluster;
 
 public class ImageProcessor {
 
-	public static class ClusterableColor implements Clusterable {
-		
-		double[] _rgb = new double[3];
-
-		public ClusterableColor(int r, int g, int b) {
-			_rgb[0] = r;
-			_rgb[1] = g;
-			_rgb[2] = b;
-		}
-		
-		@Override
-		public double[] getPoint() {
-			return _rgb;
-		}
-		
-	}
-	
+	private BufferedImage _sourceImage;
 	
 	public ImageProcessor() {
 
 	}
 
-	public BufferedImage process(BufferedImage image) {
+	public void setSourceImage(BufferedImage image) {
+		_sourceImage = image;
+	}
+
+	public BufferedImage process() {
 		
-		Histogram3D histogram = new Histogram3D(image);
+		Histogram3D histogram = new Histogram3D(_sourceImage);
 		System.out.println("colors found: " + histogram.getUniqueColorsCount());
-		List<Cluster> clusters = cluster(histogram);
+		BufferedImage result = null;
+
+		int maxK = log2(histogram.getUniqueColorsCount());
+		for(int k=2; k<=maxK; ++k) {
+			long start = System.currentTimeMillis();
+			KMeansClustering kmeans = new KMeansClustering(k);
+			List<int[]> colors = histogram.getColorPoints();
+			List<DataPoint> dataPoints = new ArrayList<>(colors.size());
+			for(int[] color : colors)
+				dataPoints.add( new DataPoint(color[0], color[1], color[2]) );
+			kmeans.setData(dataPoints);
+			List<Cluster> clusters = kmeans.cluster();
+			
+			long end = System.currentTimeMillis();
+//			System.out.println("Clustering took " + (end-start) + "ms.");
 		
-		BufferedImage result = new BufferedImage(image.getWidth(), image.getHeight(), image.getType());
-		for(int y=0; y<result.getHeight(); ++y) {
-			for(int x=0; x<result.getWidth(); ++x) {
-				int pixel = image.getRGB(x, y);
-				int red = (pixel & 0x00ff0000) >> 16;
-				int green = (pixel & 0x0000ff00) >> 8;
-				int blue = pixel & 0x000000ff;
-				DataPoint color = new DataPoint(red, green, blue);
-				DataPoint centroidColor = KMeansClustering.clusterAffiliation(color, clusters);
-				int newColor = (centroidColor._r << 16) | (centroidColor._g << 8) | centroidColor._b;
-				result.setRGB(x, y, newColor);
+			result = new BufferedImage(_sourceImage.getWidth(), _sourceImage.getHeight(), _sourceImage.getType());
+			for(int y=0; y<result.getHeight(); ++y) {
+				for(int x=0; x<result.getWidth(); ++x) {
+					int pixel = _sourceImage.getRGB(x, y);
+					int alpha = (pixel & 0xff) >> 24;
+					int red = (pixel & 0x00ff0000) >> 16;
+					int green = (pixel & 0x0000ff00) >> 8;
+					int blue = pixel & 0x000000ff;
+					DataPoint color = new DataPoint(red, green, blue);
+					DataPoint centroidColor = KMeansClustering.clusterAffiliation(color, clusters);
+					int newColor = (alpha << 24) | (centroidColor._r << 16) | (centroidColor._g << 8) | centroidColor._b;
+					result.setRGB(x, y, newColor);
+				}
 			}
+			
+			System.out.println("k=" +k+ " -> " + informationLoss(_sourceImage, result) + "% ("+(end-start)+"ms)");
 		}
 		
 		return result;
-	}
-	
-	private List<Cluster> cluster(Histogram3D histogram) {
-		long start = System.currentTimeMillis();
-		
-		int k = 8;//log2(histogram.getUniqueColorsCount());
-		KMeansClustering kmeans = new KMeansClustering(k);
-		List<int[]> colors = histogram.getColorPoints();
-		List<DataPoint> dataPoints = new ArrayList<>(colors.size());
-		for(int[] color : colors)
-			dataPoints.add( new DataPoint(color[0], color[1], color[2]) );
-		kmeans.setData(dataPoints);
-		List<Cluster> clusters = kmeans.cluster();
-		
-//		KMeansPlusPlusClusterer<ClusterableColor> clusterer = new KMeansPlusPlusClusterer<>(k);
-//		List<ClusterableColor> colorData = new ArrayList<>();
-//		for(int[] color : colors)
-//			colorData.add( new ClusterableColor(color[0], color[1], color[2]) );
-//		List<CentroidCluster<ClusterableColor>> clusters = clusterer.cluster(colorData);
-		
-		long end = System.currentTimeMillis();
-		System.out.println("Clustering took " + (end-start) + "ms.");
-		
-		return clusters;
 	}
 	
 	public void getHistogramImage() {
@@ -89,5 +67,30 @@ public class ImageProcessor {
 	
 	public static int log2(int x) {
 		return (int) (Math.log(x) / Math.log(2));
+	}
+	
+	public static double informationLoss(BufferedImage original, BufferedImage segmented) {
+		int changedPixelsCount = 0;
+		
+		for(int y=0; y<original.getHeight(); ++y) {
+			for(int x=0; x<original.getWidth(); ++x) {
+				int pixel_original = original.getRGB(x, y);
+				int red_original = (pixel_original & 0x00ff0000) >> 16;
+				int green_original = (pixel_original & 0x0000ff00) >> 8;
+				int blue_original = pixel_original & 0x000000ff;
+				
+				int pixel_segmented = segmented.getRGB(x, y);
+				int red_segmented = (pixel_segmented & 0x00ff0000) >> 16;
+				int green_segmented = (pixel_segmented & 0x0000ff00) >> 8;
+				int blue_segmented = pixel_segmented & 0x000000ff;
+				
+				if( red_segmented - red_original != 0
+						|| green_segmented - green_original != 0
+						|| blue_segmented - blue_original != 0 )
+					++changedPixelsCount;
+			}
+		}
+		
+		return (int) (100*changedPixelsCount / (double)((original.getHeight() * original.getWidth())));
 	}
 }

@@ -31,8 +31,5 @@ public class Main {
 		frame.add( new MainViewComponent(img) );
 		frame.pack();
 		frame.setVisible(true);
-		
-		ImageProcessor processor = new ImageProcessor();
-		processor.process(img);
 	}
 }

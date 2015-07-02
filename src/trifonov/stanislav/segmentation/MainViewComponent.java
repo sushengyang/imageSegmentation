@@ -17,7 +17,8 @@ public class MainViewComponent extends JComponent {
 		_sourceImg = image;
 		
 		ImageProcessor ip = new ImageProcessor();
-		_segmentedImg = ip.process(_sourceImg);
+		ip.setSourceImage(_sourceImg);
+		_segmentedImg = ip.process();
 	}
 	
 	@Override
