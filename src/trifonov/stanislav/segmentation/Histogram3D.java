@@ -7,7 +7,7 @@ import java.util.List;
 
 public class Histogram3D {
 
-	private static final int CHANNEL_8_BIT = 256;
+	public static final int CHANNEL_8_BIT = 256;
 	
 	private final int _histogram[][][] = new int[CHANNEL_8_BIT][CHANNEL_8_BIT][CHANNEL_8_BIT];
 	private final BufferedImage _image;
