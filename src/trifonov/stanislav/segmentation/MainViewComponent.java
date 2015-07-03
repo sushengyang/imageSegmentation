@@ -36,6 +36,16 @@ public class MainViewComponent extends JComponent {
 		_sourceHistogram = ip.getSourceHistogramImage();
 		_segmentedHistogram = ip.getSegmentedHistogram();
 		
+		String path = f.getParent();
+		String name = f.getName();
+		if(name.contains("."))
+			name = name.substring(0, name.indexOf('.'));
+
+		name += "_segmented";
+		name += ".bmp";
+		
+		boolean wrote = ImageIO.write( _segmentedImg, "bmp", new File(path, name) );
+		
 		repaint();
 	}
 	
@@ -73,8 +83,8 @@ public class MainViewComponent extends JComponent {
 		
 		if(_segmentedImg != null) {
 			g.drawImage(_segmentedImg, width+1, 0, width, height, null);
-			g.drawImage(_palette, (int)(1.5f*width - 0.5f*_palette.getWidth()), height+2, null);
-			g.drawImage(_segmentedHistogram, (int)(1.5*width-0.5*_segmentedHistogram.getWidth()), height + 4 + _palette.getHeight(), null);
+			g.drawImage(_segmentedHistogram, (int)(1.5*width-0.5*_segmentedHistogram.getWidth()), height + 2, null);
+			g.drawImage(_palette, (int)(1.5f*width - 0.5f*_palette.getWidth()), height+ 4 + _segmentedHistogram.getHeight(), null);
 		}
 		 
 	}

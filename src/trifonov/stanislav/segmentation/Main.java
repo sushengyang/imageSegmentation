@@ -4,6 +4,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.File;
 import java.io.IOException;
 
 import javax.swing.JFileChooser;
@@ -14,8 +15,8 @@ import javax.swing.JMenuItem;
 
 public class Main {
 	
-	static final String PATH_TEST_IMAGES = "/home/stan0/Desktop/standard-test-images/kodak_set_bmp";
-	static final String IMAGE_NAME_LENNA = "IMG0023.bmp";
+	static final String PATH_TEST_IMAGES = "/home/stan0/Desktop/standard-test-images";
+	static final String IMAGE_NAME_LENNA = "lenna.bmp";
 	
 
 	public static void main(String[] args) throws IOException {
@@ -31,6 +32,7 @@ public class Main {
 		
 		final JFileChooser fc = new JFileChooser();
 		final MainViewComponent mainComponent = new MainViewComponent();
+		mainComponent.openImage( new File(IMAGE_NAME_LENNA) );
 		
 		JMenuBar menuBar = new JMenuBar();
 		JMenu menu = new JMenu("File");
