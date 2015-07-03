@@ -12,6 +12,7 @@ public class Histogram3D {
 	private final int _histogram[][][] = new int[CHANNEL_8_BIT][CHANNEL_8_BIT][CHANNEL_8_BIT];
 	private final BufferedImage _image;
 	private int _uniqueColorsCount;
+	private int _totalColorPixels;
 	
 	public Histogram3D(BufferedImage image) {
 		_image = image;
@@ -35,13 +36,20 @@ public class Histogram3D {
 		
 		for(int r=0; r<_histogram.length; ++r)
 			for(int g=0; g<_histogram[r].length; ++g)
-				for(int b=0; b<_histogram[r][g].length; ++b)
-					if( _histogram[r][g][b] > 0 )
+				for(int b=0; b<_histogram[r][g].length; ++b) {
+					int pixelCount = _histogram[r][g][b];
+					_totalColorPixels += pixelCount;
+					if( pixelCount > 0 )
 						++_uniqueColorsCount;
+				}
 	}
 	
 	public int getUniqueColorsCount() {
 		return _uniqueColorsCount;
+	}
+	
+	public int getPixelCount() {
+		return _totalColorPixels;
 	}
 	
 	/**
@@ -55,8 +63,9 @@ public class Histogram3D {
 		for(int r=0; r<_histogram.length; ++r) {
 			for(int g=0; g<_histogram[r].length; ++g) {
 				for(int b=0; b<_histogram[r][g].length; ++b) {
-					if( _histogram[r][g][b] > 0 )
-						colors.add( new int[] {r, g, b});
+					int pixelsCount = _histogram[r][g][b];
+					if( pixelsCount > 0 )
+						colors.add( new int[] {r, g, b, pixelsCount});
 				}
 			}
 		}

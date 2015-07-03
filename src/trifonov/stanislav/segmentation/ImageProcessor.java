@@ -185,6 +185,9 @@ public class ImageProcessor {
 	    String useMtlHeader = "mtllib " + mtlFile.getName() + '\n';
 	    sbc.write( ByteBuffer.wrap(useMtlHeader.getBytes()) );
 	    
+	    System.out.println("root3 of 27 is " + root(27.0, 3));
+	    int histogramVolume = Histogram3D.CHANNEL_8_BIT * Histogram3D.CHANNEL_8_BIT * Histogram3D.CHANNEL_8_BIT;
+	    
 	    StringBuilder lineBuilder = new StringBuilder();
 	    for(int[] color : colors) {
 	    	lineBuilder.setLength(0);
@@ -202,7 +205,51 @@ public class ImageProcessor {
 	    	
 	    	sbc.write( ByteBuffer.wrap(useMtlLine.getBytes()) );
 	    	sbc.write( ByteBuffer.wrap(lineBuilder.toString().getBytes()) );
+	    	
+	    	double volume = (color[3] * (color[3]/(double)histogram.getPixelCount()) * (histogram.getPixelCount()/(double)histogramVolume));
+	    	float r = (float) root((3.0 * volume / 4.0*Math.PI), 3);
+	    	
+	    	for(int theta=0; theta<360; theta += 10) {
+	    		for(int phi=0; phi<360; phi += 10) {
+	    			lineBuilder.setLength(0);
+	    			float x= (float) (r * Math.sin(theta) * Math.cos(phi) / (double)Histogram3D.CHANNEL_8_BIT + red);
+	    			float y= (float) (r * Math.sin(theta) * Math.sin(phi) / (double)Histogram3D.CHANNEL_8_BIT + green);
+	    			float z= (float) (r * Math.cos(theta) / (double)Histogram3D.CHANNEL_8_BIT + blue); 
+	    		    lineBuilder.append(
+	    	    			"v " + x
+	    	    			+ " " + y
+	    	    			+ " " + z
+	    	    			+ '\n');
+	    		    
+	    		    sbc.write( ByteBuffer.wrap(lineBuilder.toString().getBytes()) );	    
+	    		}
+	    	}
 	    }
+	    
+	    for(int i=0; i<Histogram3D.CHANNEL_8_BIT; ++i) {
+    		lineBuilder.setLength(0);
+    		float x = i / (float)Histogram3D.CHANNEL_8_BIT;
+    		float y = 0;
+    		float z = 0;
+    		lineBuilder.append( "v " + x + " " + y + " " + z + '\n');
+    		sbc.write( ByteBuffer.wrap(lineBuilder.toString().getBytes()) );
+    		
+    		x=0;
+    		y=i / (float)Histogram3D.CHANNEL_8_BIT;
+    		z=0;
+    		lineBuilder.append( "v " + x + " " + y + " " + z + '\n');
+    		sbc.write( ByteBuffer.wrap(lineBuilder.toString().getBytes()) );
+    		
+    		x=0;
+    		y=0;
+    		z=i / (float)Histogram3D.CHANNEL_8_BIT;
+    		lineBuilder.append( "v " + x + " " + y + " " + z + '\n');
+    		sbc.write( ByteBuffer.wrap(lineBuilder.toString().getBytes()) );
+    	}
+	}
+	
+	public static double root(double number, double root) {
+		return Math.pow(Math.E, Math.log(number) / root);
 	}
 	
 	private static void exportMaterialsFile(List<int[]> colors, File mtlFile) throws IOException {
@@ -233,6 +280,16 @@ public class ImageProcessor {
 
 	    	sbc.write( ByteBuffer.wrap( mtlName.getBytes() ) );
 	    	sbc.write( ByteBuffer.wrap( diffuseColorRow.getBytes() ) );
+	    	String ambientColorRow = 
+	    			"Ka " + red
+	    			+ " " + green
+	    			+ " " + blue
+	    			+ '\n';
+
+	    	sbc.write( ByteBuffer.wrap( mtlName.getBytes() ) );
+	    	sbc.write( ByteBuffer.wrap( diffuseColorRow.getBytes() ) );
+//	    	sbc.write( ByteBuffer.wrap( ambientColorRow.getBytes() ) );
+//	    	sbc.write( ByteBuffer.wrap( "illum 2\n".getBytes() ) );
 	    }
 	}
 }
