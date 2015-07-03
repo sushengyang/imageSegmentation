@@ -11,8 +11,8 @@ import javax.swing.JFrame;
 
 public class Main {
 	
-	static final String PATH_TEST_IMAGES = "/home/stan0/Desktop/standard-test-images";
-	static final String IMAGE_NAME_LENNA = "Lenna.png";
+	static final String PATH_TEST_IMAGES = "/home/stan0/Desktop/standard-test-images/kodak_set_bmp";
+	static final String IMAGE_NAME_LENNA = "IMG0009.bmp";
 	
 
 	public static void main(String[] args) throws IOException {

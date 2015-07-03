@@ -27,7 +27,7 @@ public class ImageProcessor {
 		BufferedImage result = null;
 
 		int maxK = log2(histogram.getUniqueColorsCount());
-		for(int k=2; k<=maxK; ++k) {
+		for(int k=maxK; k<=maxK; ++k) {
 			long start = System.currentTimeMillis();
 			KMeansClustering kmeans = new KMeansClustering(k);
 			List<int[]> colors = histogram.getColorPoints();
