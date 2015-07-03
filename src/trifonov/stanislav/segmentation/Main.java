@@ -32,7 +32,7 @@ public class Main {
 		
 		final JFileChooser fc = new JFileChooser();
 		final MainViewComponent mainComponent = new MainViewComponent();
-		mainComponent.openImage( new File(IMAGE_NAME_LENNA) );
+//		mainComponent.openImage( new File(IMAGE_NAME_LENNA) );
 		
 		JMenuBar menuBar = new JMenuBar();
 		JMenu menu = new JMenu("File");
