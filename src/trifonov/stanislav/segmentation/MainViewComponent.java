@@ -34,18 +34,19 @@ public class MainViewComponent extends JComponent {
 		_segmentedImg = ip.process();
 		_palette = ip.getPalette(PALETTE_COLOR_SIZE_PX);
 		_sourceHistogram = ip.getSourceHistogramImage();
-		_segmentedHistogram = ip.getSegmentedHistogram();
+		_segmentedHistogram = ip.getSegmentedHistogramImage();
 		
 		String path = f.getParent();
 		String name = f.getName();
 		if(name.contains("."))
 			name = name.substring(0, name.indexOf('.'));
 
+		ImageProcessor.exportHistogramToObj(ip.getSegmentedHistogram(), new File(path, name+"_histogram.obj"));
+		
 		name += "_segmented";
 		name += ".bmp";
 		
 		boolean wrote = ImageIO.write( _segmentedImg, "bmp", new File(path, name) );
-		
 		repaint();
 	}
 	

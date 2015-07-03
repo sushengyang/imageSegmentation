@@ -1,8 +1,19 @@
 package trifonov.stanislav.segmentation;
 
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.SeekableByteChannel;
+import java.nio.file.Files;
+import java.nio.file.OpenOption;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import trifonov.stanislav.ml.DataPoint;
 import trifonov.stanislav.ml.KMeansClustering;
@@ -13,6 +24,7 @@ public class ImageProcessor {
 	private BufferedImage _sourceImage;
 	private Histogram3D _histogram;
 	private BufferedImage _segmentedImage;
+	private Histogram3D _segmentedHistogram;
 	
 	public ImageProcessor() {
 
@@ -59,6 +71,7 @@ public class ImageProcessor {
 			System.out.println("k=" +k+ " -> " + informationLoss() + "% ("+(end-start)+"ms)");
 		}
 		
+		_segmentedHistogram = new Histogram3D(_segmentedImage);
 		return _segmentedImage;
 	}
 	
@@ -114,12 +127,20 @@ public class ImageProcessor {
 		return result;
 	}
 	
+	public Histogram3D getHistogram() {
+		return _histogram;
+	}
+	
+	public Histogram3D getSegmentedHistogram() {
+		return _segmentedHistogram;
+	}
+	
 	public BufferedImage getSourceHistogramImage() {
 		return histogramImage( _histogram, _sourceImage.getType() );
 	}
 	
-	public BufferedImage getSegmentedHistogram() {
-		return histogramImage( new Histogram3D(_segmentedImage), _segmentedImage.getType() );
+	public BufferedImage getSegmentedHistogramImage() {
+		return histogramImage( _segmentedHistogram, _segmentedImage.getType() );
 	}
 	
 	private static BufferedImage histogramImage(Histogram3D histogram, int imageType) {
@@ -141,5 +162,77 @@ public class ImageProcessor {
 		}
 		
 		return histogramImg;
+	}
+	
+	public static void exportHistogramToObj(Histogram3D histogram, File objFile) throws IOException {
+		if(objFile.exists())
+			objFile.delete();
+
+		String name = objFile.getName();
+		if(name.contains("."))
+			name = name.substring(0, name.indexOf('.'));
+		
+		File mtlFile = new File(objFile.getParent(), name +".mtl");
+		List<int[]> colors = histogram.getColorPoints();
+		exportMaterialsFile(colors, mtlFile);
+		
+		Set<OpenOption> options = new HashSet<OpenOption>();
+	    options.add(StandardOpenOption.APPEND);
+	    options.add(StandardOpenOption.CREATE);
+	    Path path = Paths.get( objFile.getAbsolutePath() );
+	    SeekableByteChannel sbc = Files.newByteChannel(path, options);
+
+	    String useMtlHeader = "mtllib " + mtlFile.getName() + '\n';
+	    sbc.write( ByteBuffer.wrap(useMtlHeader.getBytes()) );
+	    
+	    StringBuilder lineBuilder = new StringBuilder();
+	    for(int[] color : colors) {
+	    	lineBuilder.setLength(0);
+	    	float red = color[0] / (float)Histogram3D.CHANNEL_8_BIT;
+	    	float green = color[1] / (float)Histogram3D.CHANNEL_8_BIT;
+	    	float blue = color[2] / (float)Histogram3D.CHANNEL_8_BIT;
+	    	lineBuilder.append(
+	    			"v " + red
+	    			+ " " + green
+	    			+ " " + blue
+	    			+ '\n');
+	    	
+	    	int rgb = (color[0] << 16) | (color[1] << 8) | color[2];
+	    	String useMtlLine = "usemtl mtl" + rgb + '\n';
+	    	
+	    	sbc.write( ByteBuffer.wrap(useMtlLine.getBytes()) );
+	    	sbc.write( ByteBuffer.wrap(lineBuilder.toString().getBytes()) );
+	    }
+	}
+	
+	private static void exportMaterialsFile(List<int[]> colors, File mtlFile) throws IOException {
+		if(mtlFile.exists())
+			mtlFile.delete();
+		
+		Set<OpenOption> options = new HashSet<OpenOption>();
+	    options.add(StandardOpenOption.APPEND);
+	    options.add(StandardOpenOption.CREATE);
+	    Path path = Paths.get( mtlFile.getAbsolutePath() );
+	    SeekableByteChannel sbc = Files.newByteChannel(path, options);
+	    
+	    StringBuilder lineBuilder = new StringBuilder();
+	    
+	    for(int[] color : colors) {
+	    	lineBuilder.setLength(0);
+	    	float red = color[0] / (float)Histogram3D.CHANNEL_8_BIT;
+	    	float green = color[1] / (float)Histogram3D.CHANNEL_8_BIT;
+	    	float blue = color[2] / (float)Histogram3D.CHANNEL_8_BIT;
+	    	
+	    	int rgb = (color[0] << 16) | (color[1] << 8) | color[2];
+	    	String mtlName = "newmtl mtl" +  rgb + '\n';
+	    	String diffuseColorRow = 
+	    			"Kd " + red
+	    			+ " " + green
+	    			+ " " + blue
+	    			+ '\n';
+
+	    	sbc.write( ByteBuffer.wrap( mtlName.getBytes() ) );
+	    	sbc.write( ByteBuffer.wrap( diffuseColorRow.getBytes() ) );
+	    }
 	}
 }

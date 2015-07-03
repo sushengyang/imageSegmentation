@@ -16,7 +16,7 @@ import javax.swing.JMenuItem;
 public class Main {
 	
 	static final String PATH_TEST_IMAGES = "/home/stan0/Desktop/standard-test-images";
-	static final String IMAGE_NAME_LENNA = "lenna.bmp";
+	static final String IMAGE_NAME_LENNA = "Lenna.png";
 	
 
 	public static void main(String[] args) throws IOException {
