@@ -3,7 +3,10 @@ package trifonov.stanislav.segmentation;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 
+import javax.imageio.ImageIO;
 import javax.swing.JComponent;
 
 public class MainViewComponent extends JComponent {
@@ -18,7 +21,12 @@ public class MainViewComponent extends JComponent {
 	private BufferedImage _segmentedHistogram;
 	private BufferedImage _palette;
 	
-	public MainViewComponent(BufferedImage image) {
+	public MainViewComponent() {
+		
+	}
+	
+	public void openImage(File f) throws IOException {
+		BufferedImage image = ImageIO.read(f);
 		_sourceImg = image;
 		
 		ImageProcessor ip = new ImageProcessor();
@@ -27,6 +35,8 @@ public class MainViewComponent extends JComponent {
 		_palette = ip.getPalette(PALETTE_COLOR_SIZE_PX);
 		_sourceHistogram = ip.getSourceHistogramImage();
 		_segmentedHistogram = ip.getSegmentedHistogram();
+		
+		repaint();
 	}
 	
 	@Override
@@ -39,23 +49,26 @@ public class MainViewComponent extends JComponent {
 		int width = 0;
 		int height = 0;
 		float scaleFactor = 1;
-		if(_sourceImg.getWidth() > IMG_MAX_WIDTH) {
-			float scale = IMG_MAX_WIDTH / (float)_sourceImg.getWidth();
-			if(scale < scaleFactor)
-				scaleFactor = scale;
+		
+		
+		if( _sourceImg != null ) {
+			if(_sourceImg.getWidth() > IMG_MAX_WIDTH) {
+				float scale = IMG_MAX_WIDTH / (float)_sourceImg.getWidth();
+				if(scale < scaleFactor)
+					scaleFactor = scale;
+			}
+			if(_sourceImg.getHeight() > IMG_MAX_HEIGHT) {
+				float scale = IMG_MAX_HEIGHT / (float)_sourceImg.getHeight();
+				if(scale < scaleFactor)
+					scaleFactor = scale;
+			}
+			height = (int) (_sourceImg.getHeight() * scaleFactor);
+			width = (int) (_sourceImg.getWidth() * scaleFactor);
+			
+			
+			g.drawImage(_sourceImg, 0, 0, width, height, null);
+			g.drawImage(_sourceHistogram, (int)(0.5*width - 0.5*_sourceHistogram.getWidth()), height+2, null);
 		}
-		if(_sourceImg.getHeight() > IMG_MAX_HEIGHT) {
-			float scale = IMG_MAX_HEIGHT / (float)_sourceImg.getHeight();
-			if(scale < scaleFactor)
-				scaleFactor = scale;
-		}
-		
-		height = (int) (_sourceImg.getHeight() * scaleFactor);
-		width = (int) (_sourceImg.getWidth() * scaleFactor);
-		
-		
-		g.drawImage(_sourceImg, 0, 0, width, height, null);
-		g.drawImage(_sourceHistogram, (int)(0.5*width - 0.5*_sourceHistogram.getWidth()), height+2, null);
 		
 		
 		if(_segmentedImg != null) {
